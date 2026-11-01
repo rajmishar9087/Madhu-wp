@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Madhu Mishra • Bot Console</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="nebula nebula-1"></div>
+<div class="nebula nebula-2"></div>
+<div class="nebula nebula-3"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">✦</span>
+    <h1>Madhu Mishra</h1>
+    <span class="ver">v2.0</span>
+  </div>
+  <div class="meta">
+    <div class="chip" title="Your private access key">
+      <span class="dot"></span>
+      <span id="ownerKey">—</span>
+      <button id="copyKey" class="mini">copy</button>
+    </div>
+    <div class="chip time">
+      🕒 <span id="serverTime">--:--:--</span>
+    </div>
+    <button id="soundBtn" class="ghost" title="Toggle horror ambience">🔇 sound</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="sessions">Sessions</button>
+  <button class="tab" data-tab="tasks">Tasks</button>
+  <button class="tab" data-tab="logs">Live Logs</button>
+</nav>
+
+<main>
+  <section id="tab-sessions" class="panel active">
+    <div class="card">
+      <h2>➕ New Session</h2>
+      <div class="row">
+        <input id="phoneNumber" placeholder="Phone with country code e.g. 919876543210" />
+        <button id="createSessionBtn" class="primary">Create</button>
+      </div>
+      <p class="hint">Pairing code sirf aapko dikhega. Aapka data sirf aapko.</p>
+    </div>
+
+    <div class="card">
+      <h2>🔐 Lookup by Session ID</h2>
+      <div class="row">
+        <input id="sessionLookup" placeholder="SESS-XXXXX" />
+        <button id="lookupLogout" class="warn">Logout</button>
+        <button id="lookupDelete" class="danger">Delete</button>
+      </div>
+    </div>
+
+    <h2 class="section-title">Your Sessions</h2>
+    <div id="sessionList" class="list"></div>
+  </section>
+
+  <section id="tab-tasks" class="panel">
+    <div class="card">
+      <h2>🚀 Start Task</h2>
+      <div class="grid">
+        <select id="taskSession"></select>
+        <input id="taskTarget" placeholder="Group or number JID (e.g. 12036...@g.us)" />
+        <input id="taskPrefix" placeholder="Prefix (optional)" />
+        <input id="taskDelay" type="number" min="2" value="5" placeholder="Delay seconds" />
+        <textarea id="taskMessages" rows="4" placeholder="One message per line"></textarea>
+      </div>
+      <div class="row">
+        <button id="startTaskBtn" class="primary">Start Task</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🛑 Stop by Task ID</h2>
+      <div class="row">
+        <input id="taskLookup" placeholder="TASK-XXXXX" />
+        <button id="stopLookup" class="danger">Stop</button>
+      </div>
+    </div>
+
+    <h2 class="section-title">Your Tasks</h2>
+    <div id="taskList" class="list"></div>
+  </section>
+
+  <section id="tab-logs" class="panel">
+    <div class="card">
+      <h2>📡 Live Logs <span class="muted">(last 30 min)</span></h2>
+      <div id="logBox" class="logbox"></div>
+    </div>
+  </section>
+</main>
+
+<!-- Task detail modal -->
+<div id="modal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="modalTitle">Task</h3>
+      <button id="modalClose" class="mini">✕</button>
+    </div>
+    <div id="modalBody" class="modal-body"></div>
+  </div>
+</div>
+
+<div id="toasts" class="toasts"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/app.js"></script>
+</body>
+  </html>
