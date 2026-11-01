@@ -38,6 +38,7 @@
 </nav>
 
 <main>
+  <!-- ================ SESSIONS TAB ================ -->
   <section id="tab-sessions" class="panel active">
     <div class="card">
       <h2>➕ New Session</h2>
@@ -61,16 +62,33 @@
     <div id="sessionList" class="list"></div>
   </section>
 
+  <!-- ================ TASKS TAB ================ -->
   <section id="tab-tasks" class="panel">
     <div class="card">
       <h2>🚀 Start Task</h2>
+
       <div class="grid">
         <select id="taskSession"></select>
-        <input id="taskTarget" placeholder="Group or number JID (e.g. 12036...@g.us)" />
+
+        <div class="row">
+          <button id="fetchGroupsBtn" class="ghost" style="flex:0 0 auto;">📥 Fetch Groups</button>
+          <select id="groupSelect" style="flex:1;">
+            <option value="">— select group (or paste JID below) —</option>
+          </select>
+        </div>
+
+        <input id="taskTarget" placeholder="Target JID (auto-filled from group or paste manually)" />
         <input id="taskPrefix" placeholder="Prefix (optional)" />
         <input id="taskDelay" type="number" min="2" value="5" placeholder="Delay seconds" />
-        <textarea id="taskMessages" rows="4" placeholder="One message per line"></textarea>
+
+        <div class="row">
+          <input type="file" id="msgFile" accept=".txt,text/plain" style="flex:1;" />
+          <button id="clearMsgsBtn" class="ghost" style="flex:0 0 auto;">Clear</button>
+        </div>
+
+        <textarea id="taskMessages" rows="5" placeholder="One message per line — or load from a .txt file"></textarea>
       </div>
+
       <div class="row">
         <button id="startTaskBtn" class="primary">Start Task</button>
       </div>
@@ -88,6 +106,7 @@
     <div id="taskList" class="list"></div>
   </section>
 
+  <!-- ================ LOGS TAB ================ -->
   <section id="tab-logs" class="panel">
     <div class="card">
       <h2>📡 Live Logs <span class="muted">(last 30 min)</span></h2>
@@ -112,4 +131,4 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="/app.js"></script>
 </body>
-  </html>
+</html>
