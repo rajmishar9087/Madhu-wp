@@ -76,15 +76,22 @@ function initSocket(io) {
       socket.emit('globalLogs', getGlobalLogs(socket.ownerKey));
     }));
 
-    socket.on('getGroups', guard(async () => {
-      const sessList = getUserSessions(socket.ownerKey);
-      const active = sessList.find(s => s.status === 'connected');
-      if (!active) throw new Error('No connected session');
+    // ✅ Session-specific group fetch
+    socket.on('getGroups', guard(async ({ sessionId }) => {
       const { sessions } = require('./lib/store');
-      const session = sessions.get(active.id);
+      const session = sessions.get(sessionId);
+      if (!session || session.ownerKey !== socket.ownerKey) {
+        throw new Error('Session not found');
+      }
+      if (!session.sock) throw new Error('Session not connected');
+      if (session.status !== 'connected') throw new Error('Session not connected yet');
+
       const groups = await session.sock.groupFetchAllParticipating();
-      const list = Object.values(groups).map(g => ({ id: g.id, subject: g.subject }));
-      socket.emit('groupList', list);
+      const list = Object.values(groups)
+        .map(g => ({ id: g.id, subject: g.subject }))
+        .sort((a, b) => a.subject.localeCompare(b.subject));
+
+      socket.emit('groupList', { sessionId, groups: list });
     }));
   });
 }
