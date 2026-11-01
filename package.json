@@ -1,0 +1,18 @@
+{
+  "name": "madhu-mishra-bot",
+  "version": "2.0.0",
+  "description": "Madhu Mishra Multi-Session Multi-User WhatsApp Bot",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.8",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "pino": "^8.17.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
