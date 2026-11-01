@@ -1,5 +1,5 @@
 (() => {
-  // -------- owner key --------
+  // ---------- owner key ----------
   const OWNER_KEY_STORE = 'mm_owner_key_v2';
   let ownerKey = localStorage.getItem(OWNER_KEY_STORE);
   if (!ownerKey) {
@@ -8,9 +8,13 @@
   }
   document.getElementById('ownerKey').textContent = ownerKey;
 
-  const socket = io({ reconnection: true, reconnectionDelay: 1000, reconnectionAttempts: Infinity });
+  const socket = io({
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: Infinity,
+  });
 
-  // -------- toasts --------
+  // ---------- toasts ----------
   function toast(msg, kind = '') {
     const el = document.createElement('div');
     el.className = `toast ${kind}`;
@@ -19,7 +23,7 @@
     setTimeout(() => el.remove(), 3500);
   }
 
-  // -------- server time sync --------
+  // ---------- server time sync ----------
   let serverOffset = 0;
   async function syncTime() {
     try {
@@ -34,10 +38,11 @@
   setInterval(syncTime, 60_000);
   setInterval(() => {
     const d = new Date(Date.now() + serverOffset);
-    document.getElementById('serverTime').textContent = d.toLocaleTimeString('en-GB', { hour12: false });
+    document.getElementById('serverTime').textContent =
+      d.toLocaleTimeString('en-GB', { hour12: false });
   }, 1000);
 
-  // -------- socket --------
+  // ---------- socket wiring ----------
   socket.on('connect', () => {
     socket.emit('register', { ownerKey });
   });
@@ -59,11 +64,12 @@
     }
   });
 
-  // -------- tabs --------
+  // ---------- tabs ----------
   document.querySelectorAll('.tab').forEach(btn => {
     btn.onclick = () => {
       document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
-      document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + btn.dataset.tab));
+      document.querySelectorAll('.panel').forEach(p =>
+        p.classList.toggle('active', p.id === 'tab-' + btn.dataset.tab));
     };
   });
 
@@ -72,7 +78,7 @@
     navigator.clipboard.writeText(ownerKey).then(() => toast('Key copied', 'success'));
   };
 
-  // -------- sessions --------
+  // ---------- sessions ----------
   document.getElementById('createSessionBtn').onclick = () => {
     const phoneNumber = document.getElementById('phoneNumber').value.trim();
     if (!phoneNumber) return toast('Enter phone number', 'error');
@@ -99,7 +105,9 @@
   function renderSessions(list) {
     cachedSessions = list || [];
     taskSessionSelect.innerHTML = cachedSessions.length
-      ? cachedSessions.map(s => `<option value="${s.id}" ${s.status === 'connected' ? '' : 'disabled'}>${s.id} • ${s.phoneNumber} (${s.status})</option>`).join('')
+      ? cachedSessions.map(s =>
+          `<option value="${s.id}" ${s.status === 'connected' ? '' : 'disabled'}>${s.id} • ${s.phoneNumber} (${s.status})</option>`
+        ).join('')
       : '<option value="">No sessions</option>';
 
     sessionListEl.innerHTML = cachedSessions.length
@@ -133,13 +141,73 @@
     }
   });
 
-  // -------- tasks --------
+  // ---------- ✅ group fetch ----------
+  const groupSelect = document.getElementById('groupSelect');
+  const taskTarget = document.getElementById('taskTarget');
+
+  document.getElementById('fetchGroupsBtn').onclick = () => {
+    const sessionId = taskSessionSelect.value;
+    if (!sessionId) return toast('Select a session first', 'error');
+    groupSelect.innerHTML = '<option>Loading…</option>';
+    socket.emit('getGroups', { sessionId });
+  };
+
+  socket.on('groupList', ({ sessionId, groups }) => {
+    if (sessionId !== taskSessionSelect.value) return;
+    if (!groups.length) {
+      groupSelect.innerHTML = '<option value="">No groups found</option>';
+      return toast('No groups on this session', 'warn');
+    }
+    groupSelect.innerHTML = '<option value="">— select group —</option>' +
+      groups.map(g =>
+        `<option value="${g.id}">${escapeHtml(g.subject)} — ${g.id}</option>`
+      ).join('');
+    toast(`Fetched ${groups.length} groups`, 'success');
+  });
+
+  groupSelect.onchange = () => {
+    if (groupSelect.value) taskTarget.value = groupSelect.value;
+  };
+
+  // ---------- ✅ file choose ----------
+  const msgFile = document.getElementById('msgFile');
+  const taskMessages = document.getElementById('taskMessages');
+
+  msgFile.onchange = () => {
+    const file = msgFile.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      msgFile.value = '';
+      return toast('File too big (max 2MB)', 'error');
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || '');
+      taskMessages.value = text
+        .split(/\r?\n/)
+        .map(x => x.trim())
+        .filter(Boolean)
+        .join('\n');
+      toast(`Loaded ${taskMessages.value.split('\n').length} messages`, 'success');
+      msgFile.value = '';
+    };
+    reader.onerror = () => toast('Failed to read file', 'error');
+    reader.readAsText(file);
+  };
+
+  document.getElementById('clearMsgsBtn').onclick = () => {
+    taskMessages.value = '';
+    msgFile.value = '';
+  };
+
+  // ---------- tasks ----------
   document.getElementById('startTaskBtn').onclick = () => {
     const sessionId = taskSessionSelect.value;
     const targetJid = document.getElementById('taskTarget').value.trim();
     const prefix = document.getElementById('taskPrefix').value.trim();
     const delaySec = document.getElementById('taskDelay').value;
-    const messages = document.getElementById('taskMessages').value.split('\n').map(x => x.trim()).filter(Boolean);
+    const messages = document.getElementById('taskMessages').value
+      .split('\n').map(x => x.trim()).filter(Boolean);
 
     if (!sessionId) return toast('Select session', 'error');
     if (!targetJid) return toast('Enter target JID', 'error');
@@ -197,12 +265,12 @@
     if (btn.dataset.act === 'logs') openTaskModal(id);
   });
 
-  // refresh times every second
+  // refresh times
   setInterval(() => {
     if (cachedTasks.length) renderTasks(cachedTasks);
   }, 5000);
 
-  // -------- modal --------
+  // ---------- modal ----------
   const modal = document.getElementById('modal');
   const modalBody = document.getElementById('modalBody');
   const modalTitle = document.getElementById('modalTitle');
@@ -243,7 +311,7 @@
     mLogs.scrollTop = mLogs.scrollHeight;
   }
 
-  // -------- live logs --------
+  // ---------- live logs ----------
   const logBox = document.getElementById('logBox');
   function buildLogLine(entry) {
     const div = document.createElement('div');
@@ -258,10 +326,12 @@
     logBox.scrollTop = logBox.scrollHeight;
   }
   function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
   }
 
-  // -------- stars --------
+  // ---------- stars ----------
   const cvs = document.getElementById('stars');
   const ctx = cvs.getContext('2d');
   let W, H, stars = [], shooters = [];
@@ -269,9 +339,11 @@
     W = cvs.width = window.innerWidth;
     H = cvs.height = window.innerHeight;
     stars = Array.from({ length: 140 }, () => ({
-      x: Math.random() * W, y: Math.random() * H,
+      x: Math.random() * W,
+      y: Math.random() * H,
       r: Math.random() * 1.4 + 0.3,
-      a: Math.random(), da: Math.random() * 0.02 + 0.005,
+      a: Math.random(),
+      da: Math.random() * 0.02 + 0.005,
       hue: Math.random() < 0.7 ? 0 : 340,
     }));
   }
@@ -291,7 +363,15 @@
       ctx.fill();
     }
     ctx.shadowBlur = 0;
-    if (Math.random() < 0.01) shooters.push({ x: Math.random() * W, y: 0, vx: 4 + Math.random() * 6, vy: 3 + Math.random() * 4, life: 60 });
+    if (Math.random() < 0.01) {
+      shooters.push({
+        x: Math.random() * W,
+        y: 0,
+        vx: 4 + Math.random() * 6,
+        vy: 3 + Math.random() * 4,
+        life: 60,
+      });
+    }
     shooters = shooters.filter(sh => {
       sh.x += sh.vx; sh.y += sh.vy; sh.life--;
       ctx.strokeStyle = `rgba(255, 100, 130, ${sh.life / 60})`;
@@ -306,7 +386,7 @@
   }
   drawStars();
 
-  // -------- horror ambience (Web Audio, no file) --------
+  // ---------- horror ambience ----------
   let audioCtx = null;
   let ambienceOn = false;
   let nodes = [];
@@ -315,7 +395,9 @@
     if (audioCtx.state === 'suspended') await audioCtx.resume();
 
     if (ambienceOn) {
-      nodes.forEach(n => { try { n.stop?.(); n.disconnect?.(); } catch (_) {} });
+      nodes.forEach(n => {
+        try { n.stop?.(); n.disconnect?.(); } catch (_) {}
+      });
       nodes = [];
       ambienceOn = false;
       document.getElementById('soundBtn').textContent = '🔇 sound';
@@ -324,7 +406,7 @@
     ambienceOn = true;
     document.getElementById('soundBtn').textContent = '🔊 sound on';
 
-    // Low drone
+    // low drone
     const drone = audioCtx.createOscillator();
     const droneGain = audioCtx.createGain();
     drone.type = 'sine';
@@ -334,7 +416,7 @@
     drone.start();
     nodes.push(drone);
 
-    // Eerie high sine with slow LFO
+    // eerie high sine with LFO
     const eerie = audioCtx.createOscillator();
     const eerieGain = audioCtx.createGain();
     eerie.type = 'sawtooth';
@@ -352,7 +434,7 @@
     lfo.start();
     nodes.push(lfo);
 
-    // Random creepy blips
+    // random blips
     const blipInterval = setInterval(() => {
       if (!ambienceOn) return clearInterval(blipInterval);
       const o = audioCtx.createOscillator();
@@ -368,10 +450,4 @@
     }, 4500);
     nodes.push({ stop: () => clearInterval(blipInterval), disconnect: () => {} });
   };
-
-  // group fetch helper (optional)
-  window.fetchGroups = () => socket.emit('getGroups');
-  socket.on('groupList', (list) => {
-    toast(`Fetched ${list.length} groups — first: ${list[0]?.subject || '-'}`, 'success');
-  });
 })();
